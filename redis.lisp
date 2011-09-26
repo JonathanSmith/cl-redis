@@ -3,7 +3,9 @@
 
 (in-package :redis)
 
-
+(defvar *pipelined* nil)
+(defvar *pipeline* nil)
+(defvar *clear-input* t)
 ;; utils
 
 (defun byte-length (string)
@@ -266,16 +268,15 @@ format."
                              ,@(subseq args 0 it)
                              ,(nth (1+ it) args))
                      `(tell ',cmd ,@args))
-             (prog1 (expect ,reply-type)
-               (unless *pipelined*
+             (unwind-protect (expect ,reply-type)
+               (unless *clear-input*
                  (clear-input (connection-socket *connection*)))))))
        (export ',cmd-name :redis))))
 
 
 ;; pipelining
 
-(defvar *pipelined* nil)
-(defvar *pipeline* nil)
+
 
 (defmacro with-pipelining (&body body)
   "Delay execution of EXPECT's inside BODY to the end, so that all
@@ -283,9 +284,10 @@ commands are first sent to the server and then their output is received
 and collected into a list.  So commands return :PIPELINED instead of the
 expected results."
   `(let (*pipeline*)
-     (let ((*pipelined* t))
-       ,@body)
-     (mapcar #'expect
-             (nreverse *pipeline*))))
+     (let (*clear-input*)
+       (let ((*pipelined* t))
+	 ,@body)
+       (unwind-protect (mapcar #'expect (nreverse *pipeline*))
+	 (clear-input (connection-socket *connection*))))))
 
 ;;; end
