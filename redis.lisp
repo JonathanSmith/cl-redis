@@ -269,7 +269,7 @@ format."
                              ,(nth (1+ it) args))
                      `(tell ',cmd ,@args))
              (unwind-protect (expect ,reply-type)
-               (unless *clear-input*
+               (when *clear-input*
                  (clear-input (connection-socket *connection*)))))))
        (export ',cmd-name :redis))))
 
