@@ -141,7 +141,8 @@ from Redis server."))
                   (,char it))
               (when *echo-p* (format *echo-stream* "<  ~A~%" ,line))
               ,@body)
-            ""))
+	    (error 'redis-bad-reply
+                   :message (format nil "Recieved empty string from server."))))
 
   (defmacro def-expect-method (type &body body)
     "Define a specialized EXPECT method.  BODY may refer to the ~
